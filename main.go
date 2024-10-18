@@ -7,6 +7,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/BurntSushi/toml"
+	"github.com/kshyr/pact/config"
 	"github.com/kshyr/pact/demon"
 	"github.com/kshyr/pact/logger"
 	"github.com/spf13/cobra"
@@ -51,7 +53,7 @@ func main() {
 		Short: "Manage the demon process",
 	}
 
-	var startCmd = &cobra.Command{
+	var demonStartCmd = &cobra.Command{
 		Use:   "start",
 		Short: "Start the demon",
 		Run: func(_ *cobra.Command, args []string) {
@@ -98,7 +100,7 @@ func main() {
 		},
 	}
 
-	var statusCmd = &cobra.Command{
+	var demonStatusCmd = &cobra.Command{
 		Use:   "status",
 		Short: "Check demon status",
 		Run: func(cmd *cobra.Command, args []string) {
@@ -122,7 +124,7 @@ func main() {
 		},
 	}
 
-	var stopCmd = &cobra.Command{
+	var demonStopCmd = &cobra.Command{
 		Use:   "stop",
 		Short: "Stop the demon",
 		Run: func(cmd *cobra.Command, args []string) {
@@ -142,8 +144,28 @@ func main() {
 		},
 	}
 
-	demonCmd.AddCommand(startCmd, statusCmd, stopCmd)
-	rootCmd.AddCommand(demonCmd)
+	var configCmd = &cobra.Command{
+		Use:   "config",
+		Short: "Manage Pact config",
+		Run: func(cmd *cobra.Command, args []string) {
+			cfg, err := config.NewConfig()
+			if err != nil {
+				fmt.Printf("config error: %v\n", err)
+				os.Exit(1)
+			}
+
+			tomlContents, err := toml.Marshal(cfg)
+			if err != nil {
+				fmt.Printf("marshaling to toml error: %v\n", err)
+				os.Exit(1)
+			}
+
+			fmt.Printf("config reads: \n%s", string(tomlContents))
+		},
+	}
+
+	demonCmd.AddCommand(demonStartCmd, demonStatusCmd, demonStopCmd)
+	rootCmd.AddCommand(demonCmd, configCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
