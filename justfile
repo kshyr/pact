@@ -2,20 +2,18 @@ exe := "./bin/pact"
 
 default: build
 
-watch-logs:
-    tail -f $XDG_CACHE_HOME/pact/logs/demon.log
-
-update-golden-file:
-    go test -v ./... -update
 
 build:
     go build -o bin/pact
+
+watch-logs:
+    tail -f {{cache_directory()}}/pact/logs/demon.log
 
 clean-cache:
     go clean -cache -modcache -i -r
 
 ls-cache:
-    ls -lh $XDG_CACHE_HOME/pact
+    ls -lh {{cache_directory()}}/pact
 
 dstart: build
     {{exe}} demon start
@@ -26,3 +24,10 @@ dstop: build
 
 dstatus: build
     {{exe}} demon status
+
+example *args: build
+    EXAMPLE=1 {{exe}} {{args}}
+
+# was used for bubbletea tests
+# update-golden-file:
+#     go test -v ./... -update

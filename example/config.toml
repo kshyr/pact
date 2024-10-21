@@ -1,0 +1,5 @@
+# directory where the scripts are stored
+# only scripts with metadata will be executed
+# note: it's better to use absolute paths to avoid issues with the working directory,
+# but for the example we use relative paths to the root of the project
+scripts_dir = "./example/scripts"

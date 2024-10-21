@@ -1,0 +1,87 @@
+# Scripts registry
+
+# name (required):   The identifier of the script.
+#
+#            file:   The path to the script file.
+#                    If not provided, file will be matched
+#                    with name in scripts directory.
+#                    Scripts outside this directory are allowed
+#                    but must be provided with full path.
+#
+#            args:   Arguments to pass to the script.
+#
+#        schedule:   The schedule in cron format.
+#
+#              at:   The time to run the script once in ISO 8601 format.
+#                    If both schedule and at are provided,
+#                    at will take precedence.
+#
+#           after:   The time in ISO 8601 format after which
+#                    the schedule will take effect.
+#
+#     description:   A description of the script.
+#
+#          active:   Whether the script is active or not.
+#                    Default is true.
+
+[[scripts]]
+name = "backup_home"
+file = "backup.sh"
+schedule = "0 0 * * *"
+active = false
+description = "Backup /home daily at midnight."
+# last_run = "2024-10-17T04:00:00Z"  # ISO 8601
+# next_run = "2024-10-18T04:00:00Z"
+# tags = ["backup"]
+
+# it is also okay to just store the script here
+# it can be executed anywhere with `pact invoke <name>`
+[[scripts]]
+name = "watch_dylib"
+description = "Recompiles OpenGL renderer logic on file change."
+active = false
+# last_run = "2024-10-16T03:40:08Z"
+# tags = ["gamedev", "opengl"]
+
+# example of reusing the same script with different arguments.
+[[scripts]]
+name = "beep_a4"
+file = "beep.sh"
+args = ["440", "100", "2"]
+active = false
+schedule = "@every 1s"
+
+[[scripts]]
+name = "beep_g4"
+file = "beep.sh"
+args = ["392", "100", "1"]
+active = false
+schedule = "@every 2s"
+
+[[scripts]]
+name = "beep_f4"
+file = "beep.sh"
+args = ["349", "100", "0"]
+active = false
+schedule = "@every 3s"
+
+[[scripts]]
+name = "echo_1s"
+file = "echo.sh"
+active = true
+schedule = "*/1 * * * * *"
+args = ["1s"]
+
+[[scripts]]
+name = "echo_2s"
+file = "echo.sh"
+active = true
+schedule = "*/2 * * * * *"
+args = ["2s"]
+
+[[scripts]]
+name = "echo_3s"
+file = "echo.sh"
+active = true
+schedule = "*/3 * * * * *"
+args = ["3s"]

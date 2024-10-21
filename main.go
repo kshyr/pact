@@ -4,19 +4,25 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"syscall"
-	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/kshyr/pact/config"
 	"github.com/kshyr/pact/demon"
+	"github.com/kshyr/pact/invoker"
 	"github.com/kshyr/pact/logger"
+	"github.com/kshyr/pact/script"
+	"github.com/kshyr/pact/timekeeper"
 	"github.com/spf13/cobra"
 )
 
-func demonLoop(d *demon.Demon) {
-	d.Log.Infof("Demon is alive: It's %d.", d.Pid)
-	time.Sleep(time.Second)
+func demonLoop(
+	d *demon.Demon,
+	tk *timekeeper.Timekeeper,
+	cfg *config.Config,
+	reg *script.ScriptRegistry,
+) {
 }
 
 func main() {
@@ -27,8 +33,25 @@ func main() {
 			os.Exit(1)
 		}
 
+		cfg, err := config.NewConfig()
+		if err != nil {
+			d.Log.Errorf("Failed to load config: %v", err)
+			return
+		}
+
+		registryPath := filepath.Join(cfg.ScriptsDir, "scripts.toml")
+		reg, err := script.NewRegistry(registryPath)
+		if err != nil {
+			d.Log.Errorf("Failed to load script registry: %v", err)
+			return
+		}
+
+		tk := timekeeper.New(reg.Scripts, *cfg)
+		tk.Start()
+		defer tk.Stop()
+
 		err = d.Run(func() {
-			demonLoop(d)
+			demonLoop(d, tk, cfg, reg)
 		})
 
 		if err := demon.RemovePIDFile(); err != nil {
@@ -40,7 +63,9 @@ func main() {
 			os.Exit(1)
 		}
 
-		os.Exit(0)
+		for {
+		}
+
 	}
 
 	var rootCmd = &cobra.Command{
@@ -164,8 +189,84 @@ func main() {
 		},
 	}
 
+	var listCmd = &cobra.Command{
+		Use:   "list",
+		Short: "List all the items",
+		Run: func(cmd *cobra.Command, args []string) {
+			cfg, err := config.NewConfig()
+			if err != nil {
+				fmt.Printf("config error: %v\n", err)
+				os.Exit(1)
+			}
+
+			dirEntries, err := os.ReadDir(cfg.ScriptsDir)
+			if err != nil {
+				fmt.Printf("failed to read scripts directory: %v\n", err)
+				os.Exit(1)
+			}
+
+			registryPath := filepath.Join(cfg.ScriptsDir, "scripts.toml")
+			if _, err := os.Stat(registryPath); os.IsNotExist(err) {
+				fmt.Println("scripts.toml file does not exist")
+				os.Exit(1)
+			}
+
+			registry, err := script.NewRegistry(registryPath)
+			if err != nil {
+				fmt.Printf("failed to load metadata: %v\n", err)
+				os.Exit(1)
+			}
+
+			for _, dirEntry := range dirEntries {
+				script.GetByFile(registry.Scripts, dirEntry.Name())
+				fmt.Println(dirEntry.Name())
+			}
+		},
+	}
+
+	var invokeCmd = &cobra.Command{
+		Use:   "invoke",
+		Short: "Invoke a script",
+		Run: func(cmd *cobra.Command, args []string) {
+			if len(args) < 1 {
+				fmt.Println("script name is required")
+				os.Exit(1)
+			}
+
+			cfg, err := config.NewConfig()
+			if err != nil {
+				fmt.Printf("config error: %v\n", err)
+				os.Exit(1)
+			}
+
+			registryPath := filepath.Join(cfg.ScriptsDir, "scripts.toml")
+			if _, err := os.Stat(registryPath); os.IsNotExist(err) {
+				fmt.Println("scripts.toml file does not exist")
+				os.Exit(1)
+			}
+
+			registry, err := script.NewRegistry(registryPath)
+			if err != nil {
+				fmt.Printf("failed to load metadata: %v\n", err)
+				os.Exit(1)
+			}
+
+			scriptName := args[0]
+			for _, s := range registry.Scripts {
+				if s.Name == scriptName {
+					err = invoker.InvokeScript(s, *cfg)
+					if err != nil {
+						fmt.Printf("failed to invoke script: %v\n", err)
+						os.Exit(1)
+					}
+					return
+				}
+			}
+		},
+	}
+
 	demonCmd.AddCommand(demonStartCmd, demonStatusCmd, demonStopCmd)
-	rootCmd.AddCommand(demonCmd, configCmd)
+	rootCmd.AddCommand(demonCmd, configCmd, listCmd, invokeCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)

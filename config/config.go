@@ -25,6 +25,11 @@ func DefaultConfig() *Config {
 }
 
 func NewConfig() (*Config, error) {
+	// run setup seen in example folder
+	if os.Getenv("EXAMPLE") == "1" {
+		return ExampleConfig()
+	}
+
 	filePath, err := xdg.SearchConfigFile(configRelPath)
 	if err != nil {
 		fmt.Println("no config was found")
@@ -33,7 +38,6 @@ func NewConfig() (*Config, error) {
 			fmt.Println("error creating config")
 			return nil, err
 		}
-
 		filePath = newFilePath
 	}
 
@@ -71,4 +75,17 @@ func createConfigFile() (string, error) {
 
 	fmt.Println("config file is created")
 	return filePath, nil
+}
+
+func ExampleConfig() (*Config, error) {
+	// running from the root of the project
+	filePath := "./example/config.toml"
+
+	var config Config
+	_, err := toml.DecodeFile(filePath, &config)
+	if err != nil {
+		return nil, err
+	}
+
+	return &config, nil
 }

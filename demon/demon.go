@@ -73,6 +73,9 @@ func (d Demon) Run(callback func()) error {
 		select {
 		case sig := <-sigs:
 			d.Log.Infof("Received signal: %v. Shutting down.", sig)
+			if err := RemovePIDFile(); err != nil {
+				return err
+			}
 			os.Exit(0)
 		default:
 			callback()
@@ -88,6 +91,7 @@ func IsRunning() bool {
 
 	process, err := os.FindProcess(pid)
 	if err != nil {
+		RemovePIDFile()
 		return false
 	}
 
